@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Student Dashboard</title>
+
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .top-bar {
+            position: fixed;
+            top: 20px;
+            right: 30px;
+        }
+
+        .top-bar a {
+            color: #fff;
+            text-decoration: none;
+            font-weight: 500;
+            background: rgba(255,255,255,0.15);
+            padding: 8px 14px;
+            border-radius: 20px;
+            transition: 0.3s;
+        }
+
+        .top-bar a:hover {
+            background: rgba(255,255,255,0.30);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 420px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(12px);
+            border-radius: 18px;
+            padding: 35px 30px 40px;
+            color: #fff;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+            animation: fadeIn 0.6s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 10px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .user-info {
+            text-align: center;
+            font-size: 14px;
+            margin-bottom: 20px;
+            opacity: 0.9;
+        }
+
+        .error {
+            background: rgba(255, 0, 0, 0.15);
+            border-left: 4px solid #ff4d4d;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-bottom: 15px;
+        }
+
+        label {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            margin-top: 6px;
+            margin-bottom: 18px;
+            padding: 12px 14px;
+            border-radius: 10px;
+            border: none;
+            outline: none;
+            font-size: 15px;
+            text-align: center;
+        }
+
+        input::placeholder {
+            color: #aaa;
+        }
+
+        .label-small {
+            font-size: 13px;
+            text-align: center;
+            opacity: 0.85;
+            margin-bottom: 6px;
+        }
+
+        .timer {
+            text-align: center;
+            font-size: 30px;
+            font-weight: 600;
+            margin-bottom: 18px;
+            letter-spacing: 2px;
+            color: #ffd166;
+            font-family: "Courier New", monospace;
+        }
+
+        .timer.expired {
+            color: #ff4d4d;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            background: linear-gradient(135deg, #00c6ff, #0072ff);
+            color: #fff;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.25);
+        }
+
+        button:disabled {
+            background: #999;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 30px 22px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="top-bar">
+    <a href="/logout">Logout</a>
+</div>
+
+<div class="container">
+    <h2>🎓 Student Dashboard</h2>
+
+    <div class="user-info">
+        Logged in as <strong>{{ session['user_id'] }}</strong>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="error">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST">
+        <label for="lecture_id">Lecture ID</label>
+        <input type="text" id="lecture_id" name="lecture_id"
+               placeholder="e.g. L201" required>
+
+        <div class="label-small">You have 1 minute to submit the code</div>
+        <div id="timer" class="timer">01:00</div>
+
+        <label for="typed_code">6-Digit Attendance Code</label>
+        <input type="text" id="typed_code" name="typed_code"
+               placeholder="••••••" maxlength="6" required>
+
+        <input type="hidden" name="blur_detected" id="blur_detected" value="0">
+
+        <button type="submit" id="submitBtn">Submit Attendance</button>
+    </form>
+</div>
+
+<script>
+    /* ---------- STATE ---------- */
+    let blurDetected = false;
+    let timeLeft = 60;
+
+    /* ---------- FULLSCREEN ---------- */
+    window.onload = function () {
+        const ok = confirm(
+            "This attendance requires FULLSCREEN mode.\n\n" +
+            "Switching tabs or minimizing the window will be recorded.\n\n" +
+            "Click OK to continue in fullscreen."
+        );
+
+        if (!ok) {
+            window.location.href = "/logout";
+            return;
+        }
+
+        requestFullScreen();
+    };
+
+    function requestFullScreen() {
+        const elem = document.documentElement;
+        if (elem.requestFullscreen) elem.requestFullscreen();
+        else if (elem.webkitRequestFullscreen) elem.webkitRequestFullscreen();
+        else if (elem.msRequestFullscreen) elem.msRequestFullscreen();
+    }
+
+    /* ---------- BLUR / TAB DETECTION ---------- */
+    document.addEventListener("visibilitychange", () => {
+        if (document.hidden) blurDetected = true;
+    });
+
+    window.addEventListener("blur", () => {
+        blurDetected = true;
+    });
+
+    document.addEventListener("fullscreenchange", () => {
+        if (!document.fullscreenElement) {
+            blurDetected = true;
+        }
+    });
+
+    /* ---------- TIMER ---------- */
+    const timerEl   = document.getElementById('timer');
+    const codeInput = document.getElementById('typed_code');
+    const submitBtn = document.getElementById('submitBtn');
+
+    const intervalId = setInterval(() => {
+        const m = Math.floor(timeLeft / 60);
+        const s = timeLeft % 60;
+        timerEl.textContent = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+
+        if (timeLeft <= 10) timerEl.classList.add('expired');
+
+        if (timeLeft <= 0) {
+            clearInterval(intervalId);
+            timerEl.textContent = '⏰ EXPIRED';
+            codeInput.disabled = true;
+            submitBtn.disabled = true;
+        }
+        timeLeft--;
+    }, 1000);
+
+    /* ---------- INPUT VALIDATION ---------- */
+    codeInput.addEventListener('keypress', e => {
+        if (!/[0-9]/.test(e.key)) e.preventDefault();
+    });
+
+    /* ---------- FORM SUBMIT ---------- */
+    document.querySelector("form").addEventListener("submit", () => {
+        document.getElementById("blur_detected").value = blurDetected ? "1" : "0";
+    });
+</script>
+
+</body>
+</html>
