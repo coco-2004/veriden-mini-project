@@ -86,8 +86,7 @@ Veriden_mini_project/
 │   ├── student_submission.html
 │   ├── submission_result.html
 │   └── attendance_report.html
-│
-└── static/
+
 ```
 
 ---
