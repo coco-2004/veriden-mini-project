@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Attendance Report</title>
+    <style>
+        body { font-family: Arial; background: #f4f6f8; padding: 30px; }
+        h2 { text-align: center; }
+        form { text-align: center; margin-bottom: 20px; }
+        select, button {
+            padding: 8px 12px;
+            font-size: 14px;
+        }
+        table {
+            width: 90%;
+            margin: auto;
+            border-collapse: collapse;
+            background: white;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        th {
+            background: #2c3e50;
+            color: white;
+        }
+        .present { color: green; font-weight: bold; }
+        .absent { color: red; font-weight: bold; }
+        .note {
+            text-align: center;
+            margin-top: 10px;
+            color: #555;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Attendance Report</h2>
+
+<form method="POST">
+    <label>Select Lecture:</label>
+    <select name="lecture_id" required>
+        <option value="">-- Choose Lecture --</option>
+        {% for lec in lectures %}
+            <option value="{{ lec.lecture_id }}"
+                {% if lec.lecture_id == selected_lecture %}selected{% endif %}>
+                {{ lec.lecture_id }}
+            </option>
+        {% endfor %}
+    </select>
+    <button type="submit">View Report</button>
+</form>
+
+{% if records %}
+<table>
+    <tr>
+        <th>Student ID</th>
+        <th>Submitted At</th>
+        <th>Status</th>
+        <th>Focus Issue</th>
+    </tr>
+    {% for row in records %}
+    <tr>
+        <td>{{ row.student_id }}</td>
+        <td>{{ row.submitted_at }}</td>
+        <td>
+            {% if row.is_present %}
+                <span class="present">Present</span>
+            {% else %}
+                <span class="absent">Absent</span>
+            {% endif %}
+        </td>
+        <td>{{ 'Yes' if row.blur_detected else 'No' }}</td>
+    </tr>
+    {% endfor %}
+</table>
+
+<div class="note">Refresh page to see updated records.</div>
+{% endif %}
+
+</body>
+</html>
