@@ -131,11 +131,3 @@ This project is implemented with a focus on **clarity, correctness, and explaina
 
 ---
 
-## 👤 Author
-
-**Poorvi Parashar**
-B.Tech CSE Student
-
----
-
-⭐ If you like this project, give it a star — it helps more than you think!
